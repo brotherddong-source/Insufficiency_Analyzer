@@ -1,0 +1,1267 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>기재불비 검사기 (개선)</title>
+<style>
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background:#f5f6f8;
+    color:#212121;
+  }
+
+  .header{
+    background:#fff;
+    border-bottom:1px solid #e0e0e0;
+    padding:16px 24px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .headerLeft h1{ margin:0; font-size:18px; font-weight:800; }
+  .headerLeft p{ margin:6px 0 0; font-size:13px; color:#6e6e6e; line-height:1.5; }
+
+  .pill{
+    font-size:12px;
+    padding:10px 12px;
+    border:1px solid #e0e0e0;
+    border-radius:999px;
+    background:#fff;
+    color:#444;
+    white-space:nowrap;
+    line-height:1;
+  }
+
+  .btn{
+    border:none;
+    background:#2563eb;
+    color:#fff;
+    font-weight:900;
+    font-size:14px;
+    padding:10px 18px;
+    border-radius:14px;
+    cursor:pointer;
+    box-shadow: 0 6px 16px rgba(37,99,235,0.18);
+    line-height:1;
+  }
+  .btn:active{ transform:translateY(1px); }
+
+  /* ===== Guide ===== */
+  .guideWrap{
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 14px 18px 0;
+  }
+  .guideCard{
+    background:#fff;
+    border:1px solid #e0e0e0;
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .guideHeader{
+    padding:14px 18px;
+    border-bottom:1px solid #e0e0e0;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:10px;
+  }
+  .guideHeader .title{ font-size:14px; font-weight:900; color:#2563eb; }
+  .guideHeader .sub{ font-size:12px; color:#6e6e6e; font-weight:700; }
+  .guideBody{ padding:12px 18px 16px; }
+  .guideGrid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .guideTable{
+    width:100%;
+    border-collapse: collapse;
+    font-size:12px;
+  }
+  .guideTable th, .guideTable td{
+    border:1px solid #e0e0e0;
+    padding:10px 10px;
+    vertical-align:top;
+  }
+  .guideTable th{
+    background:#f9fafb;
+    text-align:left;
+    font-weight:900;
+    color:#111;
+  }
+  code{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size:11.5px;
+    padding:2px 6px;
+    border-radius:8px;
+    background:#f3f4f6;
+    border:1px solid #e5e7eb;
+  }
+  .hintBox{
+    border:1px dashed #e0e0e0;
+    border-radius:12px;
+    padding:12px;
+    color:#6e6e6e;
+    background:#fbfbfb;
+    font-size:12px;
+    line-height:1.6;
+  }
+  .badge{
+    display:inline-block;
+    min-width:34px;
+    text-align:center;
+    font-weight:900;
+    font-size:11px;
+    padding:4px 8px;
+    border-radius:999px;
+    border:1px solid #e0e0e0;
+    background:#fff;
+  }
+  .b1{ color:#1d4ed8; }
+  .b2{ color:#7c3aed; }
+  .b4{ color:#0f766e; }
+  .b5{ color:#b91c1c; }
+  .b6{ color:#6b7280; }
+
+  /* ===== 검사 컨트롤 ===== */
+  .controlWrap{
+    max-width: 1400px;
+    margin: 12px auto 0;
+    padding: 0 18px;
+  }
+  .controlRow{
+    background:#fff;
+    border:1px solid #e0e0e0;
+    border-radius:14px;
+    padding:14px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+
+  /* ===== 2-column always ===== */
+  .container{
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 14px 18px 18px;
+
+    display:grid;
+    grid-template-columns: minmax(520px, 1fr) minmax(520px, 1fr);
+    gap: 14px;
+
+    overflow-x:auto;
+  }
+
+  /* ===== Panels ===== */
+  .panel{
+    background:#fff;
+    border:1px solid #e0e0e0;
+    border-radius:14px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    height: clamp(620px, 75vh, 980px);
+  }
+  .panelHeader{
+    padding:14px 18px;
+    border-bottom:1px solid #e0e0e0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:#fff;
+  }
+  .panelHeader .title{ font-size:14px; font-weight:900; color:#2563eb; }
+  .panelHeader .sub{ font-size:12px; color:#6e6e6e; font-weight:700; }
+  .panelBody{
+    flex:1;
+    overflow-y:auto;
+    padding:14px 16px;
+  }
+
+  /* ===== 입력창 ===== */
+  .editable{
+    width:100%;
+    height:100%;
+    border:none;
+    outline:none;
+    white-space:pre-wrap;
+    word-break:break-word;
+    overflow-y:auto;
+    font-size:13px;
+    line-height:1.6;  /* ✅ 줄간격 개선 (1.15 → 1.6) */
+    color:#111;
+  }
+  .claim-block{
+    display:block;
+    padding:8px 10px;  /* ✅ 패딩 증가로 가독성 개선 */
+    border-radius:12px;
+    margin-bottom:8px;  /* ✅ 블록 간격 증가 */
+    border:1px solid #f0f0f0;
+    cursor:pointer;
+    line-height:1.6;  /* ✅ 줄간격 개선 */
+  }
+  .claim-block:hover{ background:#fafafa; }
+  .claim-error{ color:#dc2626; font-weight:750; border-color:#fecaca; background:#fff7f7; }
+  .claim-warn{ color:#d97706; font-weight:650; border-color:#fed7aa; background:#fff9ef; }
+  .claim-ok{ color:#111; font-weight:500; }
+  .claim-selected{ box-shadow: 0 0 0 2px #2563eb; }
+
+  /* ✅ contenteditable 내부 자동 p/div 여백 제거 */
+  #inp p, #inp div, #inp span{
+    margin:0 !important;
+    padding:0 !important;
+    line-height:1.6 !important;  /* ✅ 줄간격 통일 */
+  }
+
+  /* ===== 결과 카드 ===== */
+  .card{
+    border:1px solid #e0e0e0;
+    border-radius:12px;
+    background:#fff;
+    padding:12px 12px;
+    margin-bottom:12px;
+    cursor:pointer;
+    transition:all 0.2s;
+  }
+  .card:hover{
+    border-color:#cbd5e1;
+    box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  }
+  .cardTop{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:6px;
+    padding:8px;
+    margin:-8px -8px 6px -8px;
+    border-radius:4px;
+    transition:background-color 0.2s;
+  }
+  .cardTop:hover{
+    background-color:#f8fafc;
+  }
+  .cardTop .h{ font-weight:900; font-size:14px; }
+  .tags{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .tag{
+    font-size:11px;
+    padding:4px 8px;
+    border-radius:999px;
+    border:1px solid #e0e0e0;
+    background:#f9fafb;
+    color:#444;
+    white-space:nowrap;
+  }
+
+  .sev{
+    font-size:11px;
+    font-weight:900;
+    padding:4px 8px;
+    border-radius:999px;
+    border:1px solid transparent;
+  }
+  .sevOk{ color:#15803d; background:#ecfdf5; border-color:#bbf7d0; }
+  .sevWarn{ color:#b45309; background:#fff7ed; border-color:#fed7aa; }
+  .sevErr{ color:#b91c1c; background:#fef2f2; border-color:#fecaca; }
+  .sevInfo{ color:#1e40af; background:#eff6ff; border-color:#bfdbfe; }
+
+  .line{ font-size:12px; color:#444; margin-top:6px; line-height:1.5; }
+  .muted{ color:#6e6e6e; }
+
+  ul{ margin:8px 0 0 18px; padding:0; }
+  li{ margin:7px 0; line-height:1.5; }
+
+  .issueRow{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .issueLeft{
+    flex:1;
+    min-width:0;
+    overflow-wrap: break-word;
+  }
+
+  .jumpBtn{
+    font-size:11px;
+    padding:5px 10px;
+    border:1px solid #d1d5db;
+    background:#fff;
+    border-radius:8px;
+    cursor:pointer;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .jumpBtn:hover{ background:#f3f4f6; }
+</style>
+</head>
+<body>
+
+<!-- 비밀번호 보호 레이어 -->
+<div id="authLayer" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999;">
+  <div style="background:white; padding:40px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15); max-width:400px; width:90%;">
+    <h2 style="margin:0 0 20px 0; font-size:24px; color:#1f2937;">기재불비 검사기</h2>
+    <p style="margin:0 0 20px 0; color:#6b7280; font-size:14px;">비밀번호를 입력하세요.</p>
+    <input type="password" id="passwordInput" placeholder="비밀번호" style="width:100%; padding:12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; margin-bottom:12px; box-sizing:border-box;">
+    <button onclick="checkPassword()" style="width:100%; padding:12px; background:#2563eb; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">확인</button>
+    <p id="authError" style="color:#dc2626; font-size:13px; margin:12px 0 0 0; display:none;">비밀번호가 올바르지 않습니다.</p>
+  </div>
+</div>
+
+<div class="header">
+  <div class="headerLeft">
+    <h1>기재불비 검사기</h1>
+    <p style="color:#6b7280; font-size:13px; margin-top:8px; line-height:1.6;">
+      • 선행기재 없는 '상기' 사용 오류 탐지<br/>
+      • 존재하지 않는 청구항 인용 / 역방향 인용 오류<br/>
+      • 청구대상 상이 오류 탐지 (방법 ↔ 시스템 불일치)
+    </p>
+  </div>
+</div>
+
+<!-- Guide -->
+<div class="guideWrap">
+  <div class="guideCard">
+    <div class="guideHeader">
+      <div class="title">검사 룰</div>
+      <div class="sub">5가지 규칙 자동 검사</div>
+    </div>
+    <div class="guideBody">
+      <div class="guideGrid">
+        <table class="guideTable">
+          <thead>
+            <tr>
+              <th style="width:70px;">코드</th>
+              <th>설명</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge b6">INFO</span></td>
+              <td>
+                <strong>청구항 번호 건너뛰기 안내</strong><br/>
+                번호가 연속되지 않은 경우 (등록청구항에서는 정상)
+              </td>
+            </tr>
+            <tr>
+              <td><span class="badge b1">R1</span></td>
+              <td>
+                <strong>중복 청구항 번호</strong><br/>
+                동일한 번호가 여러 번 등장
+              </td>
+            </tr>
+            <tr>
+              <td><span class="badge b5">R2</span></td>
+              <td>
+                <strong>존재하지 않는 청구항 인용</strong><br/>
+                자신보다 뒤 또는 존재하지 않는 항 인용 시 오류
+              </td>
+            </tr>
+            <tr>
+              <td><span class="badge b5">R4</span></td>
+              <td>
+                <strong>중복 단어 검사</strong><br/>
+                연속된 동일 단어 (예: "정보 정보")
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <table class="guideTable">
+          <thead>
+            <tr>
+              <th style="width:70px;">코드</th>
+              <th>설명</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge b2">R5</span></td>
+              <td>
+                <strong>청구항 끝 문구 일치</strong><br/>
+                종속항 끝을 인용항과 동일하게 (예: 방법 → 방법, 시스템 → 시스템)
+              </td>
+            </tr>
+            <tr>
+              <td><span class="badge b4">R6</span></td>
+              <td>
+                <strong>선행기재 없는 '상기' 사용</strong><br/>
+                '상기 XXX' 사용 시 해당 용어 먼저 도입 필요
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Control -->
+<div class="controlWrap">
+  <div class="controlRow">
+    <button id="btnRun" class="btn">검사 실행</button>
+    <button id="btnReset" class="btn" style="background:#6b7280;">새로 시작</button>
+    <span id="summary" style="font-size:13px; color:#6e6e6e;">청구항을 입력하고 '검사 실행'을 클릭하세요.</span>
+  </div>
+</div>
+
+<!-- 2-column -->
+<div class="container">
+  <div class="panel">
+    <div class="panelHeader">
+      <div class="title">청구항 입력</div>
+      <div class="sub">클릭 → 결과로 이동</div>
+    </div>
+    <div class="panelBody">
+      <div id="inp" class="editable" contenteditable="true"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panelHeader">
+      <div class="title">검사 결과</div>
+      <div class="sub">이동 버튼 → 입력으로</div>
+    </div>
+    <div class="panelBody" id="out">
+      <div class="hintBox">청구항을 입력 후 '검사 실행' 버튼을 눌러주세요.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 비밀번호 체크 함수
+function checkPassword(){
+  const input = document.getElementById('passwordInput');
+  const password = input.value;
+  const correctPassword = 'iplabiplabgogo';
+  
+  if(password === correctPassword){
+    document.getElementById('authLayer').style.display = 'none';
+    sessionStorage.setItem('authenticated', 'true');
+  } else {
+    document.getElementById('authError').style.display = 'block';
+    input.value = '';
+    input.focus();
+  }
+}
+
+// Enter 키로 제출
+document.addEventListener('DOMContentLoaded', function(){
+  const input = document.getElementById('passwordInput');
+  if(input){
+    input.addEventListener('keypress', function(e){
+      if(e.key === 'Enter') checkPassword();
+    });
+    input.focus();
+  }
+  
+  // 세션 확인
+  if(sessionStorage.getItem('authenticated') === 'true'){
+    document.getElementById('authLayer').style.display = 'none';
+  }
+});
+
+(function(){
+  "use strict";
+
+  // ✅ 한국어 조사 목록 (완전 리스트)
+  const KOREAN_PARTICLES = [
+    "은", "는", "이", "가", "을", "를", "의", "에", "에서", "로", "으로",
+    "와", "과", "도", "만", "부터", "까지", "마저", "조차", "에게", "한테",
+    "께", "더러", "보다", "처럼", "같이", "커녕", "라도", "나마", "이나",
+    "이라도", "이든지", "든지", "이라", "라", "이야", "야"
+  ];
+
+  // ✅ 불용어 목록 - 의미 없는 일반 단어들
+  const STOPWORDS = new Set([
+    "상기", "해당", "제1", "제2", "제3", "제4", "제5", "제6", "제7", "제8", "제9",
+    "단계", "방법", "장치", "시스템", "있어서", "포함하는", "포함하고", "포함한",
+    "활용하여", "활용한", "활용하는", "통해", "통하여", "의하여", "의해", "따라",
+    "위한", "위하여", "대한", "대하여", "관한", "관하여", "있는", "없는",
+    "하는", "되는", "수행하는", "실행하는", "제어하는", "기초로", "기반으로",
+    "응답하여", "기초하여", "사용하여", "이용하여", "경우", "것", "때", "시",
+    "특징으로", "특징으로하는", "수", "및", "또는", "그리고", "하나", "둘", "셋",
+    "각각", "모두", "전부", "일부", "별도", "다른", "같은", "다양한"
+  ]);
+
+  function esc(str){
+    return (str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // ✅ 조사 제거 함수
+  function stripParticle(word) {
+    if (!word) return "";
+    for (const p of KOREAN_PARTICLES) {
+      if (word.endsWith(p)) {
+        const base = word.slice(0, -p.length);
+        if (base.length > 0) return base;
+      }
+    }
+    return word;
+  }
+
+  // ✅ 용어와 조사를 분리하는 함수
+  function splitTermAndParticle(phrase) {
+    if (!phrase) return { term: "", particle: "" };
+    
+    for (const p of KOREAN_PARTICLES) {
+      if (phrase.endsWith(p)) {
+        const term = phrase.slice(0, -p.length);
+        if (term.length > 0) {
+          return { term: term, particle: p };
+        }
+      }
+    }
+    return { term: phrase, particle: "" };
+  }
+
+  function parseClaims(text){
+    const lines = text.split(/\n/);
+    const arr = [];
+    let cur = null;
+
+    for(let ln of lines){
+      ln = ln.trim();
+      const m1 = ln.match(/^【청구항\s*(\d+)】(.*)$/);
+      if(m1){
+        if(cur) arr.push(cur);
+        cur = { no:parseInt(m1[1],10), raw: m1[2] };
+        continue;
+      }
+      const m2 = ln.match(/^(\d+)\.\s*(.*)$/);
+      if(m2){
+        if(cur) arr.push(cur);
+        cur = { no:parseInt(m2[1],10), raw: m2[2] };
+        continue;
+      }
+      if(cur){
+        cur.raw += "\n" + ln;
+      }
+    }
+    if(cur) arr.push(cur);
+    return arr;
+  }
+
+  function extractDeps(raw){
+    const deps = [];
+    const pat = /제\s*(\d+)\s*항/g;
+    let m;
+    while((m = pat.exec(raw))!==null){
+      const no = parseInt(m[1], 10);
+      if(!deps.includes(no)) deps.push(no);
+    }
+    return deps.sort((a,b)=>a-b);
+  }
+
+  function closure(no, depsMap){
+    const s = new Set();
+    const q = [no];
+    while(q.length){
+      const x = q.shift();
+      if(s.has(x)) continue;
+      s.add(x);
+      const arr = depsMap.get(x) || [];
+      for(const p of arr) q.push(p);
+    }
+    s.delete(no);
+    return Array.from(s).sort((a,b)=>a-b);
+  }
+
+  function topParent(no, closList){
+    if(!closList || !closList.length) return null;
+    return Math.min(...closList);
+  }
+
+  function extractSubject(raw){
+    // 청구항 끝부분에서 발명의 대상 추출
+    // 가장 마지막 "...을/를 특징으로 하는 X"를 찾아야 함
+    
+    // 방법 1: 마지막 "특징으로 하는" 찾기 (최우선)
+    const featureIdx = raw.lastIndexOf('특징으로 하는');
+    if(featureIdx >= 0){
+      // "특징으로 하는" 이후 텍스트 추출
+      const afterFeature = raw.substring(featureIdx + '특징으로 하는'.length).trim();
+      // 마침표나 세미콜론까지
+      const match = afterFeature.match(/^(.+?)(?:\.|;|$)/);
+      if(match) return match[1].trim();
+    }
+    
+    // 방법 2: "더 포함하는" 패턴
+    const includeIdx = raw.lastIndexOf('더 포함하는');
+    if(includeIdx >= 0){
+      const afterInclude = raw.substring(includeIdx + '더 포함하는'.length).trim();
+      // 쉼표 이후 또는 직후 텍스트
+      let text = afterInclude;
+      if(text.startsWith(',')){
+        text = text.substring(1).trim();
+      }
+      const match = text.match(/^(.+?)(?:\.|;|$)/);
+      if(match) return match[1].trim();
+    }
+    
+    // 방법 3: "포함하는" 패턴
+    const containsIdx = raw.lastIndexOf('포함하는');
+    if(containsIdx >= 0){
+      const afterContains = raw.substring(containsIdx + '포함하는'.length).trim();
+      let text = afterContains;
+      if(text.startsWith(',')){
+        text = text.substring(1).trim();
+      }
+      const match = text.match(/^(.+?)(?:\.|;|$)/);
+      if(match) return match[1].trim();
+    }
+    
+    // 방법 4: 끝 문장에서 키워드 추출
+    const sentences = raw.split(/[.;]/).filter(s => s.trim().length > 0);
+    if(sentences.length === 0) return null;
+    const lastSentence = sentences[sentences.length - 1].trim();
+    
+    const keywords = ['방법', '장치', '시스템', '프로그램', '매체', '제품', '디바이스', '장비', '기기'];
+    for(const keyword of keywords){
+      if(lastSentence.includes(keyword)){
+        const idx = lastSentence.lastIndexOf(keyword);
+        const start = Math.max(0, idx - 30);
+        const extracted = lastSentence.substring(start, idx + keyword.length).trim();
+        const commaIdx = extracted.lastIndexOf(',');
+        if(commaIdx >= 0){
+          return extracted.substring(commaIdx + 1).trim();
+        }
+        return extracted;
+      }
+    }
+    
+    return null;
+  }
+
+  function normMin(s){
+    return (s||"").replace(/\s+/g,"").toLowerCase();
+  }
+
+  function extractCategory(raw){
+    const s = raw.toLowerCase();
+    if(s.includes("방법")) return "METHOD";
+    if(s.includes("장치")) return "APPARATUS";
+    if(s.includes("시스템")) return "SYSTEM";
+    if(s.includes("제품")) return "PRODUCT";
+    if(s.includes("컴퓨터") && s.includes("프로그램")) return "PROGRAM";
+    if(s.includes("매체")) return "MEDIUM";
+    return "UNKNOWN";
+  }
+
+  function buildLexicon(text){
+    const lex = new Map();
+    const lines = text.split(/\n/);
+    for(const ln of lines){
+      const words = ln.split(/\s+/);
+      for(let w of words){
+        w = w.trim();
+        if(!w) continue;
+        // ✅ 조사 제거하여 순수 명사만 저장
+        const base = stripParticle(w);
+        if (base.length > 0) {
+          if(!lex.has(base)) lex.set(base, 0);
+          lex.set(base, lex.get(base)+1);
+        }
+      }
+    }
+    return lex;
+  }
+
+  function appearsInLexicon(lex, phrase){
+    // ✅ 조사 제거 후 비교
+    const base = stripParticle(phrase);
+    return lex.has(base);
+  }
+
+  function isInsideSubject(phrase, subj){
+    if(!subj) return false;
+    const base = stripParticle(phrase);
+    return subj.includes(base);
+  }
+
+  function extractPhrases(txt){
+    // ✅ 의미 없는 기능어만 제외
+    const stopWords = new Set([
+      "상기", "해당", "있어서", "포함하는", "단계", "것", "경우", "때", "위해",
+      "통해", "기초로", "응답하여", "제공하는", "수행하는", "의해", "대한",
+      "관한", "따른", "위한", "통한", "특징으로", "하는", "되는", "있는",
+      "없는", "같은", "다른", "새로운", "기존", "전체", "일부", "각각",
+      "모든", "어떤", "어느", "제1", "제2", "제3", "제4", "제5",
+      "모두", "전부", "별도", "다양한"
+    ]);
+    
+    // 조사를 제거한 단어들 추출
+    const arr = txt.split(/\s+/);
+    const result = [];
+    
+    for(let w of arr){
+      const base = stripParticle(w.trim());
+      
+      // ✅ 3글자 이상 한글만 (너무 짧은 단어 제외)
+      if(base.length >= 3 && /^[가-힣]+$/.test(base)){
+        // 기능어 제외
+        if(!stopWords.has(base)){
+          result.push(base);
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  function extractDeicticRefs(txt){
+    const arr = [];
+    
+    // ✅ 전처리: "및", "또는", "그리고"로 분리
+    // "상기 A 및 B에" → ["상기 A", "B에"]로 분리하여 각각 처리
+    const segments = txt.split(/\s+(및|또는|그리고)\s+/);
+    
+    let currentOffset = 0; // 현재 세그먼트의 원본 텍스트 내 위치
+    
+    // 분리된 각 세그먼트에 대해 정규식 적용
+    for(let segment of segments){
+      // 접속사 자체는 건너뛰되, offset은 업데이트
+      if(segment === "및" || segment === "또는" || segment === "그리고") {
+        currentOffset += segment.length + 2; // 접속사 + 앞뒤 공백
+        continue;
+      }
+      
+      // 정규식: 상기/해당 + 명사구 + 조사
+      // 복합 조사(~의 계열) 최우선 매칭: 와의, 과의, 로의, 으로의, 에의, 에서의, 내의, 외의, 중의 등
+      // "별" 접미사도 조사처럼 처리
+      // "시" 추가 (시간/조건: 비상 상황 발생 시)
+      const regex = /(상기|해당)\s+([가-힣0-9\s]+?)(내의|외의|중의|와의|과의|으로의|로의|에의|에서의|로부터|에서부터|으로부터|에게서|한테서|에는|에도|로는|로도|와는|과는|별로|별|은|는|이|가|을|를|의|에|로|와|과|도|만|까지|부터|에서|으로|시)(?![가-힣])/g;
+      let m;
+      
+      while((m=regex.exec(segment))!==null){
+        const deictic = m[1];
+        let target = m[2].trim().replace(/\s+/g, ' ');
+        const particle = m[3] || "";
+        
+        // ✅ 관형사(과거분사형) 제거: ~된, ~한, ~인 등
+        // "선택된 예약 가능 영역" → "예약 가능 영역"
+        const modifiers = /^(선택된|생성된|특정된|인식된|결정된|설정된|배치된|제공된|수신된|탐지된|확인된|등록된|포함된|반영된|산출된|조정된|적용된|전환된|실행된|발생한|만족하는|대응하는|관련된)\s+/;
+        target = target.replace(modifiers, '');
+        
+        // ✅ 불용어 제거 후 의미 있는 단어가 남아있는지 확인
+        const words = target.split(' ').filter(w => 
+          !STOPWORDS.has(w) && w.length >= 2 && /[가-힣]/.test(w)
+        );
+        
+        // 의미 있는 단어가 하나라도 있을 때만 추가
+        if(words.length > 0){
+          arr.push({
+            deictic: deictic,
+            target: target,  // 원본 그대로 (표시용)
+            cleanTarget: words.join(' '),  // 불용어 제거된 버전 (비교용)
+            evidence: `${deictic} ${target}${particle}`,
+            position: currentOffset + m.index  // 원본 텍스트 내 위치
+          });
+        }
+      }
+      
+      currentOffset += segment.length + 1; // 세그먼트 + 공백 1개
+    }
+    
+    return arr;
+  }
+
+  function precededByDeictic(text, pos){
+    if(pos<3) return false;
+    const sub = text.substring(Math.max(0, pos-10), pos);
+    return /(?:상기|해당)\s*$/.test(sub);
+  }
+
+  // ✅ 개선된 단일 토큰 위치 찾기 (조사 포함)
+  function findSingleTokenPos(text, token){
+    const base = stripParticle(token);
+    const regex = new RegExp(base + "(?:" + KOREAN_PARTICLES.join("|") + ")?", "g");
+    const m = regex.exec(text);
+    return m ? m.index : -1;
+  }
+
+  function analyze(text){
+    const claims = parseClaims(text);
+    if(!claims.length) return {claims:[], totalErr:0, totalWarn:0, summary:"청구항 인식 실패"};
+
+    // ✅ 중복 청구항 번호 검사
+    const claimNumbers = new Map();  // 번호 -> 등장 횟수
+    for(const c of claims){
+      claimNumbers.set(c.no, (claimNumbers.get(c.no) || 0) + 1);
+    }
+
+    const depsMap = new Map();
+    const subjects = new Map();
+    const categories = new Map();
+
+    for(const c of claims){
+      const d = extractDeps(c.raw);
+      depsMap.set(c.no, d);
+
+      const s = extractSubject(c.raw);
+      subjects.set(c.no, s);
+
+      const cat = extractCategory(c.raw);
+      categories.set(c.no, cat);
+    }
+
+    const results = [];
+    for(const c of claims){
+      const deps = depsMap.get(c.no) || [];
+      const clos = closure(c.no, depsMap);
+      const issues = [];
+      const raw = c.raw;
+      const mySubject = subjects.get(c.no);
+
+      const tp = topParent(c.no, clos);
+
+      // ✅ R1: 중복 청구항 번호 검사
+      if(claimNumbers.get(c.no) > 1){
+        issues.push({
+          code:"R1_DUPLICATE_CLAIM_NUMBER",
+          severity:"ERROR",
+          evidence:`청구항 ${c.no}이(가) ${claimNumbers.get(c.no)}번 중복 등장`,
+          suggestion:`청구항 번호를 고유하게 수정하세요 (예: 순차적으로 1, 2, 3, ...)`
+        });
+      }
+
+      // ✅ R2: 존재하지 않는 청구항 인용 검사 + 역방향 인용 검사
+      for(const refNo of deps){
+        const refExists = claims.find(cl => cl.no === refNo);
+        if(!refExists){
+          issues.push({
+            code:"R2_INVALID_REFERENCE",
+            severity:"ERROR",
+            evidence:`제${refNo}항을 인용하고 있으나, 제${refNo}항이 존재하지 않음`,
+            suggestion:`청구항 번호를 확인하고 올바른 항을 인용하세요`
+          });
+        } else if(refNo >= c.no){
+          // ✅ 역방향 인용 (자신 또는 뒤의 청구항 인용)
+          issues.push({
+            code:"R2_FORWARD_REFERENCE",
+            severity:"ERROR",
+            evidence:`제${refNo}항을 인용하고 있으나, 청구항은 앞의 청구항만 인용할 수 있음`,
+            suggestion:`청구항 ${c.no}은 제${refNo}항보다 먼저 등장하므로 인용 불가능`
+          });
+        }
+      }
+      
+      // ✅ INFO: 청구항 번호 건너뛰기 안내 (등록청구항에서는 정상)
+      if(c.no > 1){
+        const prevClaimNo = c.no - 1;
+        const prevExists = claims.find(cl => cl.no === prevClaimNo);
+        if(!prevExists){
+          issues.push({
+            code:"INFO_CLAIM_NUMBER_GAP",
+            severity:"INFO",
+            evidence:`청구항 ${prevClaimNo}이(가) 누락되어 번호가 ${prevClaimNo} → ${c.no}로 건너뜀`,
+            suggestion:`등록청구항에서는 정상적인 경우입니다. 출원청구항이라면 번호 순서를 확인하세요.`
+          });
+        }
+      }
+
+      // ✅ R4: 중복 단어 검사 (연속된 동일 단어)
+      const duplicatePattern = /([가-힣]{2,})\s+\1\b/g;
+      let dupMatch;
+      while((dupMatch = duplicatePattern.exec(raw)) !== null){
+        issues.push({
+          code:"R4_DUPLICATE_WORD",
+          severity:"ERROR",
+          evidence:`중복 단어 발견: "${dupMatch[1]} ${dupMatch[1]}"`,
+          suggestion:`중복된 "${dupMatch[1]}" 단어를 제거하세요`
+        });
+      }
+
+      if(deps.length>0){
+        // 종속항의 경우
+        
+        // ✅ 스코프는 인용항들만 포함 (현재 청구항 제외!)
+        let scopeText = "";
+        for(const refNo of clos){
+          const refClaim = claims.find(x=>x.no===refNo);
+          if(refClaim) scopeText += refClaim.raw + "\n";
+        }
+        
+        // ✅ R1_CROSS: 비활성화
+        // "예약 가능 영역"을 "예약", "가능", "영역"으로 쪼개는 문제로 인해
+        // false positive가 너무 많이 발생하므로 비활성화
+        // 한국어의 복합 명사구를 정확히 인식하는 것은 형태소 분석기 없이는 불가능
+        
+        const refs = extractDeicticRefs(raw);
+        for(const r of refs){
+          // cleanTarget이 있으면 사용, 없으면 target 사용 (하위 호환)
+          const targetToCheck = r.cleanTarget || r.target;
+          
+          if(isInsideSubject(targetToCheck, mySubject)) continue;
+          
+          // ✅ 전체 명사구가 스코프 또는 현재 청구항 앞부분에 있는지 확인
+          // 1. 인용항 스코프에서 확인
+          let fullPhraseExists = scopeText.includes(targetToCheck);
+          
+          // 2. 스코프에 없으면 현재 청구항 앞부분에서 확인
+          if(!fullPhraseExists){
+            const deicticPos = r.position || raw.indexOf(r.evidence); // position 우선 사용
+            const beforeText = raw.substring(0, deicticPos);
+            fullPhraseExists = beforeText.includes(targetToCheck);
+          }
+          
+          if(!fullPhraseExists){
+            // 스코프와 현재 청구항 앞부분 모두에 없으면 ERROR
+            issues.push({
+              code:"R6_DEICTIC_WITHOUT_ANTECEDENT",
+              severity:"ERROR",
+              evidence: r.evidence,
+              suggestion: `인용항 또는 현재 청구항 앞부분에서 '${targetToCheck}' 전체를 먼저 도입하거나, '상기' 삭제`
+            });
+          }
+        }
+      } else {
+        // 독립항의 경우 - 선행 도입 없이 '상기' 사용하는 경우 검사
+        
+        const refs = extractDeicticRefs(raw);
+        for(const r of refs){
+          // cleanTarget이 있으면 사용 (불용어 제거된 버전)
+          const targetToCheck = r.cleanTarget || r.target;
+          
+          if(isInsideSubject(targetToCheck, mySubject)) continue;
+          
+          // 의미 있는 명사구가 없으면 (불용어만 있으면) 무시
+          if(!targetToCheck || targetToCheck.length === 0) continue;
+          
+          // 해당 용어가 "상기" 없이 앞에서 먼저 등장했는지 확인
+          const deicticPos = r.position || raw.indexOf(r.evidence); // position 우선 사용
+          const beforeText = raw.substring(0, deicticPos);
+          
+          // ✅ 전체 명사구가 앞에 있는지 확인 (엄격)
+          const fullPhraseExists = beforeText.includes(targetToCheck);
+          
+          if(!fullPhraseExists){
+            // 전체 명사구가 앞에 없으면 ERROR
+            issues.push({
+              code:"R6_DEICTIC_WITHOUT_ANTECEDENT",
+              severity:"ERROR",
+              evidence: r.evidence,
+              suggestion: `독립항에서 '${targetToCheck}' 전체를 '상기' 없이 먼저 도입한 후 사용하거나, '상기'를 제거하세요`
+            });
+          }
+        }
+      }
+
+      // R5
+      if(tp !== null && tp !== c.no){
+        const base = subjects.get(tp);
+        const cur  = subjects.get(c.no);
+        if(base && cur){
+          if(normMin(base) !== normMin(cur)){
+            issues.push({
+              code:"R5_INVENTION_SUBJECT_MISMATCH_STRICT",
+              severity:"ERROR",
+              evidence:`청구항 끝 문구 불일치`,
+              baseSubject: base,  // 기준항 대상
+              currentSubject: cur,  // 현재항 대상
+              baseClaimNo: tp,  // 기준항 번호
+              suggestion:"종속항 끝을 인용항과 동일하게 작성"
+            });
+          }
+        }else if(!cur){
+          issues.push({
+            code:"R5_SUBJECT_NOT_FOUND",
+            severity:"WARN",
+            evidence:"청구항 끝 문구 누락",
+            suggestion:"청구항 끝에 '방법', '장치', '시스템', '프로그램' 등의 발명 대상을 명시"
+          });
+        }
+      }
+
+      results.push({
+        no: c.no,
+        deps,
+        closure: clos,
+        topParent: tp,
+        subject: subjects.get(c.no),
+        category: categories.get(c.no),
+        issues
+      });
+    }
+
+    const totalErr = results.reduce((a,r)=>a+r.issues.filter(x=>x.severity==="ERROR").length,0);
+    const totalWarn = results.reduce((a,r)=>a+r.issues.filter(x=>x.severity==="WARN").length,0);
+    const totalInfo = results.reduce((a,r)=>a+r.issues.filter(x=>x.severity==="INFO").length,0);
+    return {claims: results, totalErr, totalWarn, totalInfo, summary: `청구항 ${results.length}개 · 오류 ${totalErr}건 · 경고 ${totalWarn}건${totalInfo > 0 ? ` · 안내 ${totalInfo}건` : ''}`};
+  }
+
+  // ============================================================
+  // Render input (빈줄 압축 + \n -> <br>)
+  // ============================================================
+  function renderInputWithHighlight(rawText, results){
+    const claims = parseClaims(rawText);
+    if(!claims.length){
+      return esc(rawText).replace(/\n/g,"<br/>");
+    }
+
+    const map = new Map(results.map(r=>[r.no, r]));
+    let html = "";
+    for(const c of claims){
+      const r = map.get(c.no);
+      let cls = "claim-ok";
+      if(r){
+        const err = r.issues.filter(i=>i.severity==="ERROR").length;
+        const warn = r.issues.filter(i=>i.severity==="WARN").length;
+        const info = r.issues.filter(i=>i.severity==="INFO").length;
+        if(err>0) cls = "claim-error";
+        else if(warn>0) cls = "claim-warn";
+        // INFO는 시각적 강조 없음 (OK 상태 유지)
+      }
+
+      // ✅ 불필요한 빈 줄 제거
+      const rawForView = (c.raw || "")
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n");  // 3개 이상 연속 줄바꿈 → 2개로
+
+      const bodyHtml = esc(rawForView).replace(/\n/g, "<br>");
+
+      html += `<span class="claim-block ${cls}" data-claim="${c.no}">` +
+              `<b>【청구항 ${c.no}】</b><br>${bodyHtml}` +
+              `</span>`;
+    }
+    return html;
+  }
+
+  // ============================================================
+  // Render results
+  // ============================================================
+  function renderResults(res){
+    const out = document.getElementById("out");
+    const summary = document.getElementById("summary");
+    summary.textContent = res.summary || "검사 내용 요약";
+
+    if(!res.claims.length){
+      out.innerHTML = `<div class="hintBox">청구항 구분자를 인식하지 못했습니다. <code>【청구항 1】</code> 또는 <code>1.</code> 형식으로 입력해 주세요.</div>`;
+      return;
+    }
+
+    out.innerHTML = res.claims.map(r=>{
+      const err = r.issues.filter(x=>x.severity==="ERROR").length;
+      const warn = r.issues.filter(x=>x.severity==="WARN").length;
+      const info = r.issues.filter(x=>x.severity==="INFO").length;
+
+      let sevCls="sevOk", sevTxt="OK";
+      if(err>0){ sevCls="sevErr"; sevTxt=`ERROR ${err}`; }
+      else if(warn>0){ sevCls="sevWarn"; sevTxt=`WARN ${warn}`; }
+      else if(info>0){ sevCls="sevInfo"; sevTxt=`INFO ${info}`; }
+
+      const depsTxt = r.deps.length ? `인용: ${r.deps.join(", ")}` : "독립항";
+      const cloTxt = r.closure.length ? `검사범위: 제${r.closure.join("항, 제")}항` : "";
+      
+      // 발명의 대상을 간략하게 표시
+      let subjDisplay = "";
+      if(r.subject){
+        if(r.subject.includes("방법")){
+          subjDisplay = "방법항";
+        } else if(r.subject.includes("시스템")){
+          subjDisplay = "시스템항";
+        } else if(r.subject.includes("프로그램")){
+          subjDisplay = "프로그램항";
+        } else if(r.subject.includes("장치")){
+          subjDisplay = "장치항";
+        } else if(r.subject.includes("제품")){
+          subjDisplay = "제품항";
+        } else if(r.subject.includes("매체")){
+          subjDisplay = "매체항";
+        } else {
+          subjDisplay = esc(r.subject);
+        }
+      } else {
+        subjDisplay = `<span class="muted">미검출</span>`;
+      }
+
+      const issuesHtml = r.issues.length ? `
+        <ul>
+          ${r.issues.map(it=>{
+            let sev;
+            if(it.severity==="ERROR"){
+              sev = `<span class="sev sevErr">ERROR</span>`;
+            } else if(it.severity==="WARN"){
+              sev = `<span class="sev sevWarn">WARN</span>`;
+            } else if(it.severity==="INFO"){
+              sev = `<span class="sev sevInfo">INFO</span>`;
+            }
+            
+            // R5 오류는 특별한 형식으로 표시
+            if(it.code === "R5_INVENTION_SUBJECT_MISMATCH_STRICT"){
+              return `<li data-claim="${r.no}">
+                <div class="issueRow">
+                  <div class="issueLeft">
+                    ${sev} ${esc(it.evidence)}
+                  </div>
+                </div>
+                <div class="line" style="margin-top:6px; padding-left:4px;">
+                  <div style="font-size:12px; color:#6b7280;">기준 (제${it.baseClaimNo}항): <strong>${esc(it.baseSubject)}</strong></div>
+                  <div style="font-size:12px; color:#6b7280; margin-top:2px;">현재 (제${r.no}항): <strong>${esc(it.currentSubject)}</strong></div>
+                </div>
+                <div class="line" style="color:#dc2626; font-weight:600; margin-top:6px;">→ ${esc(it.suggestion||"")}</div>
+              </li>`;
+            }
+            
+            return `<li data-claim="${r.no}">
+              <div class="issueRow">
+                <div class="issueLeft">
+                  ${sev} ${esc(it.evidence)}
+                </div>
+              </div>
+              <div class="line muted">→ ${esc(it.suggestion||"")}</div>
+            </li>`;
+          }).join("")}
+        </ul>
+      ` : `<div class="line muted">검출된 형식 오류 없음</div>`;
+
+      return `
+        <div class="card" id="claim-result-${r.no}" data-claim="${r.no}">
+          <div class="cardTop">
+            <div class="h">청구항 ${r.no} <span class="sev ${sevCls}">${sevTxt}</span></div>
+            <div class="tags">
+              <span class="tag">${esc(depsTxt)}</span>
+              ${cloTxt ? `<span class="tag">${esc(cloTxt)}</span>` : ""}
+              <span class="tag">대상: ${subjDisplay}</span>
+              ${r.topParent ? `<span class="tag">기준항: 제${r.topParent}항</span>` : ""}
+            </div>
+          </div>
+          ${issuesHtml}
+        </div>
+      `;
+    }).join("");
+  }
+
+  // ============================================================
+  // Navigation helpers
+  // ============================================================
+  function clearSelected(){
+    document.querySelectorAll(".claim-selected").forEach(el=>el.classList.remove("claim-selected"));
+  }
+  function focusInputClaim(no){
+    const span = document.getElementById("inp").querySelector(`[data-claim="${no}"]`);
+    if(!span) return;
+    clearSelected();
+    span.classList.add("claim-selected");
+    span.scrollIntoView({behavior:"smooth", block:"center"});
+    setTimeout(()=>span.classList.remove("claim-selected"), 1400);
+  }
+  function focusResultClaim(no){
+    const el = document.getElementById(`claim-result-${no}`);
+    if(!el) return;
+    el.scrollIntoView({behavior:"smooth", block:"start"});
+    el.style.boxShadow = "0 0 0 2px #2563eb";
+    setTimeout(()=>el.style.boxShadow="", 1200);
+  }
+
+  // ============================================================
+  // Placeholder behavior
+  // ============================================================
+  const inp = document.getElementById("inp");
+  const btn = document.getElementById("btnRun");
+  let isPlaceholderActive = true;
+
+  function getPlainText(){
+    return (inp.innerText || "").replace(/\u00A0/g," ").trim();
+  }
+
+  inp.addEventListener("focus", ()=>{
+    if(isPlaceholderActive){
+      inp.textContent = "";
+      isPlaceholderActive = false;
+    }
+  });
+
+  // ✅ 붙여넣기 시 HTML 태그 제거 및 여백 정리
+  inp.addEventListener("paste", (e)=>{
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData("text");
+    
+    // 여러 개의 빈 줄을 하나로 압축
+    const cleaned = text
+      .replace(/[ \t]+\n/g, "\n")  // 줄 끝 공백 제거
+      .replace(/\n{3,}/g, "\n\n"); // 3개 이상 연속 줄바꿈 → 2개로
+    
+    // 순수 텍스트만 삽입
+    document.execCommand("insertText", false, cleaned);
+    isPlaceholderActive = false;
+  });
+
+  // ============================================================
+  // Run
+  // ============================================================
+  function run(){
+    const plain = getPlainText();
+    const res = analyze(plain);
+
+    inp.innerHTML = renderInputWithHighlight(plain, res.claims);
+    renderResults(res);
+
+    const firstErr = res.claims.find(r => r.issues.some(i => i.severity === "ERROR"));
+    if(firstErr){
+      focusResultClaim(firstErr.no);
+      focusInputClaim(firstErr.no);
+    }
+  }
+
+  btn.addEventListener("click", run);
+
+  // 새로 시작 버튼
+  const btnReset = document.getElementById("btnReset");
+  btnReset.addEventListener("click", ()=>{
+    // 입력 영역 초기화
+    inp.textContent = `청구항을 입력하세요.
+
+【청구항 1】 또는 1. 형식으로 시작`;
+    
+    // 결과 영역 초기화
+    document.getElementById("out").innerHTML = `<div class="hintBox">청구항을 입력 후 '검사 실행' 버튼을 눌러주세요.</div>`;
+    
+    // 요약 초기화
+    document.getElementById("summary").textContent = "청구항을 입력하고 '검사 실행'을 클릭하세요.";
+    
+    // placeholder 상태 복원
+    isPlaceholderActive = true;
+    
+    // 입력창으로 스크롤
+    inp.scrollIntoView({behavior:"smooth", block:"start"});
+  });
+
+  // 입력 청구항 클릭 -> 결과로
+  inp.addEventListener("click", (e)=>{
+    const el = e.target.closest("[data-claim]");
+    if(!el) return;
+    focusResultClaim(el.dataset.claim);
+  });
+
+  // 결과 영역: 청구항 카드 클릭 -> 입력으로 이동
+  document.getElementById("out").addEventListener("click", (e)=>{
+    const card = e.target.closest(".card[data-claim]");
+    if(card){
+      focusInputClaim(card.dataset.claim);
+    }
+  });
+
+  // 초기 예시
+  inp.textContent = `청구항을 입력하세요.
+
+【청구항 1】 또는 1. 형식으로 시작`;
+})();
+</script>
+</body>
+</html>
