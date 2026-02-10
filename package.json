@@ -1,0 +1,13 @@
+{
+  "name": "insufficiency-analyzer",
+  "version": "1.0.0",
+  "description": "Insufficiency Analyzer with secure authentication",
+  "scripts": {
+    "start": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
