@@ -33,22 +33,23 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: '서버 설정 오류' });
     }
 
-    // IP 체크
     if (clientIP === ALLOWED_IP) {
-      // 자동 인증 - JWT 토큰 발급
-      const token = jwt.sign(
-        { authenticated: true, autoLogin: true, timestamp: Date.now() },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
-      return res.status(200).json({
-        authenticated: true,
-        autoLogin: true,
-        token,
-        ip: clientIP
-      });
-    }
+  const token = jwt.sign(
+    { authenticated: true, autoLogin: true, timestamp: Date.now() },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+  
+  // Set cookie for iframe compatibility
+  res.setHeader('Set-Cookie', `auth_token=${token}; Path=/; Max-Age=86400; HttpOnly; Secure; SameSite=None`);
+  
+  return res.status(200).json({
+    authenticated: true,
+    autoLogin: true,
+    token,
+    ip: clientIP
+  });
+}
 
     // IP가 일치하지 않으면 인증 필요
     return res.status(200).json({
