@@ -742,9 +742,15 @@ document.addEventListener('DOMContentLoaded', function(){
   // [2] 예외처리: '중 적어도 하나', '중 어느 하나' 등을 조사처럼 취급하여 용어에서 제거
   function stripConnectorSuffix(term) {
     return term
+      // 복합 패턴 먼저 (긴 것 먼저)
       .replace(/\s*중\s+적어도\s+하나/g, '')
       .replace(/\s*중\s+어느\s+하나/g, '')
+      .replace(/\s*중\s+어느\s+것/g, '')
+      // 단순 패턴
       .replace(/\s*중\s+하나/g, '')
+      .replace(/\s*중\s+일부/g, '')
+      .replace(/\s*중\s+전부/g, '')
+      .replace(/\s*중\s+모두/g, '')
       .trim();
   }
 
@@ -1089,8 +1095,10 @@ document.addEventListener('DOMContentLoaded', function(){
         // 동사형 체크 (모든 segment 토큰 대상 - 중간 동사형 3-gram 방지)
         if (segment.some(s => VERB_ENDS.test(s.base + s.particle))) continue;
 
-        // 마지막 토큰이 조사를 가지거나 문장 끝인 경우만 유효
-        if (!lastToken.hasParticle && i + len < tokens.length) continue;
+        // 마지막 토큰이 조사를 가지거나 문장 끝이거나 다음 토큰이 접속사(및/또는)인 경우 유효
+        // → 'X 및 Y 중 적어도 하나를' 패턴에서 X도 정상 추적
+        const nextIsConnector = i + len < tokens.length && tokens[i + len].isConnector;
+        if (!lastToken.hasParticle && i + len < tokens.length && !nextIsConnector) continue;
 
         if (!occMap.has(normalized)) occMap.set(normalized, []);
         occMap.get(normalized).push({ tokenPos: i, hasSanggi });
