@@ -1034,6 +1034,8 @@ document.addEventListener('DOMContentLoaded', function(){
     ]);
 
     const CONNECTORS = new Set(['및', '또는', '그리고']);
+    // 제N(제1, 제2...) 수식어 패턴: 직후 명사는 서로 다른 구성요소로 취급
+    const JE_PREFIX_RE = /^제[\d一二三四五六七八九十]+$|^제[일이삼사오육칠팔구십]+$/;
 
     // 토큰화 및 분석
     const rawTokens = text.split(/\s+/).filter(t => t.length > 0);
@@ -1046,16 +1048,24 @@ document.addEventListener('DOMContentLoaded', function(){
       const particle = hasParticle ? cleaned.slice(base.length) : '';
       const isSanggi = base === '상기' || base === '해당';
       const isConnector = CONNECTORS.has(base);
-      return { tok, base, hasParticle, particle, isSanggi, isConnector };
+      const isJePrefix = JE_PREFIX_RE.test(base);
+      return { tok, base, hasParticle, particle, isSanggi, isConnector, isJePrefix };
     });
 
     // 명사구 수집: Map<normalized, [{tokenPos, hasSanggi}]>
     const occMap = new Map();
 
-    for (let i = 0; i < tokens.length; i++) {
+    let i = 0;
+    while (i < tokens.length) {
       const t = tokens[i];
-      if (t.isSanggi || t.isConnector) continue;
-      if (!t.base || t.base.length < 2 || !/^[가-힣]+$/.test(t.base)) continue;
+      let consumed = 1;
+
+      if (t.isSanggi || t.isConnector) { i += consumed; continue; }
+      if (!t.base || t.base.length < 2 || !/^[가-힣]+$/.test(t.base)) { i += consumed; continue; }
+
+      // 제N(제1, 제2...) 직후 명사는 서로 다른 구성요소 → skip
+      const prevIsJe = i > 0 && tokens[i - 1].isJePrefix;
+      if (prevIsJe) { i += consumed; continue; }
 
       const hasSanggi = i > 0 && tokens[i - 1].isSanggi;
 
@@ -1076,16 +1086,19 @@ document.addEventListener('DOMContentLoaded', function(){
         // 불용어 체크
         if (segment.some(s => R7_STOP.has(s.base))) continue;
 
-        // 동사형 체크
-        if (VERB_ENDS.test(lastToken.base + lastToken.particle)) continue;
+        // 동사형 체크 (모든 segment 토큰 대상 - 중간 동사형 3-gram 방지)
+        if (segment.some(s => VERB_ENDS.test(s.base + s.particle))) continue;
 
         // 마지막 토큰이 조사를 가지거나 문장 끝인 경우만 유효
         if (!lastToken.hasParticle && i + len < tokens.length) continue;
 
         if (!occMap.has(normalized)) occMap.set(normalized, []);
         occMap.get(normalized).push({ tokenPos: i, hasSanggi });
+        consumed = len;  // 매칭된 토큰 수만큼 소비
         break;
       }
+
+      i += consumed;
     }
 
     // 상기 없이 2회 이상 등장하는 용어 수집
