@@ -1030,7 +1030,9 @@ document.addEventListener('DOMContentLoaded', function(){
     const rawTokens = text.split(/\s+/).filter(t => t.length > 0);
     const tokens = rawTokens.map(tok => {
       const cleaned = tok.replace(/[;,\.\?\!【】()\[\]]/g, '');
-      const base = stripParticle(cleaned);
+      // 복합 조사 처리: 두 번 strip (예: 로부터 → 로 → '', 에서부터 → 에서 → '')
+      let base = stripParticle(cleaned);
+      base = stripParticle(base);
       const hasParticle = base !== cleaned && cleaned.startsWith(base) && base.length > 0;
       const particle = hasParticle ? cleaned.slice(base.length) : '';
       const isSanggi = base === '상기' || base === '해당';
