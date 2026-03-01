@@ -741,16 +741,12 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // [2] 예외처리: '중 적어도 하나', '중 어느 하나' 등을 조사처럼 취급하여 용어에서 제거
   function stripConnectorSuffix(term) {
+    // '중 [수식어?] [선택어]' 패턴 일괄 제거
+    // 수식어: 적어도, 어느 (optional)
+    // 선택어: 하나, 둘, 셋, 일부, 전부, 모두, 것
+    // 예) 중 하나, 중 적어도 하나, 중 어느 하나, 중 적어도 일부, 중 전부 등
     return term
-      // 복합 패턴 먼저 (긴 것 먼저)
-      .replace(/\s*중\s+적어도\s+하나/g, '')
-      .replace(/\s*중\s+어느\s+하나/g, '')
-      .replace(/\s*중\s+어느\s+것/g, '')
-      // 단순 패턴
-      .replace(/\s*중\s+하나/g, '')
-      .replace(/\s*중\s+일부/g, '')
-      .replace(/\s*중\s+전부/g, '')
-      .replace(/\s*중\s+모두/g, '')
+      .replace(/\s*중\s+(?:적어도\s+|어느\s+)?(?:하나|둘|셋|일부|전부|모두|것)/g, '')
       .trim();
   }
 
