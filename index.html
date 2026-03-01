@@ -730,6 +730,15 @@ document.addEventListener('DOMContentLoaded', function(){
     return { term: phrase, particle: "" };
   }
 
+  // [2] 예외처리: '중 적어도 하나', '중 어느 하나' 등을 조사처럼 취급하여 용어에서 제거
+  function stripConnectorSuffix(term) {
+    return term
+      .replace(/\s*중\s+적어도\s+하나/g, '')
+      .replace(/\s*중\s+어느\s+하나/g, '')
+      .replace(/\s*중\s+하나/g, '')
+      .trim();
+  }
+
   function parseClaims(text){
     const lines = text.split(/\n/);
     const arr = [];
@@ -951,6 +960,8 @@ document.addEventListener('DOMContentLoaded', function(){
       while((m=regex.exec(segment))!==null){
         const deictic = m[1];
         let target = m[2].trim().replace(/\s+/g, ' ');
+        // [2] 예외처리: '중 적어도 하나', '중 어느 하나' 등 조사처럼 취급
+        target = stripConnectorSuffix(target);
         const particle = m[3] || "";
         
         // ✅ 관형사(과거분사형) 제거: ~된, ~한, ~인 등
@@ -993,6 +1004,111 @@ document.addEventListener('DOMContentLoaded', function(){
     const regex = new RegExp(base + "(?:" + KOREAN_PARTICLES.join("|") + ")?", "g");
     const m = regex.exec(text);
     return m ? m.index : -1;
+  }
+
+  // R7: 앞서 도입된 구성요소에 '상기' 누락 검사
+  function checkMissingSanggi(raw) {
+    const issues = [];
+
+    // [2] 예외처리 적용 + 줄바꿈을 공백으로
+    const text = stripConnectorSuffix(raw.replace(/\n/g, ' '));
+
+    // 동사 어미 패턴
+    const VERB_ENDS = /(?:하는|하여|하고|하거나|되는|되어|되고|하며|위한|통한|의한|기반한|기초한)$/;
+
+    // R7 전용 불용어
+    const R7_STOP = new Set([
+      '단계', '방법', '장치', '시스템', '경우', '것', '수', '때', '시',
+      '특징', '발명', '청구항', '해당', '상기', '및', '또는', '그리고',
+      '하나', '둘', '셋', '각각', '모든', '전체', '일부', '다른',
+      '이를', '그것', '이것', '위해', '통해'
+    ]);
+
+    const CONNECTORS = new Set(['및', '또는', '그리고']);
+
+    // 토큰화 및 분석
+    const rawTokens = text.split(/\s+/).filter(t => t.length > 0);
+    const tokens = rawTokens.map(tok => {
+      const cleaned = tok.replace(/[;,\.\?\!【】()\[\]]/g, '');
+      const base = stripParticle(cleaned);
+      const hasParticle = base !== cleaned && cleaned.startsWith(base) && base.length > 0;
+      const particle = hasParticle ? cleaned.slice(base.length) : '';
+      const isSanggi = base === '상기' || base === '해당';
+      const isConnector = CONNECTORS.has(base);
+      return { tok, base, hasParticle, particle, isSanggi, isConnector };
+    });
+
+    // 명사구 수집: Map<normalized, [{tokenPos, hasSanggi}]>
+    const occMap = new Map();
+
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      if (t.isSanggi || t.isConnector) continue;
+      if (!t.base || t.base.length < 2 || !/^[가-힣]+$/.test(t.base)) continue;
+
+      const hasSanggi = i > 0 && tokens[i - 1].isSanggi;
+
+      // Greedy longest match: 최대 3-gram
+      for (let len = Math.min(3, tokens.length - i); len >= 1; len--) {
+        const segment = tokens.slice(i, i + len);
+
+        // 중간 토큰은 조사 없는 순수 명사여야 함
+        const intermediates = segment.slice(0, -1);
+        if (intermediates.some(s => s.hasParticle || s.isConnector || s.isSanggi)) continue;
+
+        // 모든 base가 2글자 이상 한글이어야 함
+        if (segment.some(s => !s.base || s.base.length < 2 || !/^[가-힣]+$/.test(s.base))) continue;
+
+        const normalized = segment.map(s => s.base).join(' ');
+        const lastToken = segment[segment.length - 1];
+
+        // 불용어 체크
+        if (segment.some(s => R7_STOP.has(s.base))) continue;
+
+        // 동사형 체크
+        if (VERB_ENDS.test(lastToken.base + lastToken.particle)) continue;
+
+        // 마지막 토큰이 조사를 가지거나 문장 끝인 경우만 유효
+        if (!lastToken.hasParticle && i + len < tokens.length) continue;
+
+        if (!occMap.has(normalized)) occMap.set(normalized, []);
+        occMap.get(normalized).push({ tokenPos: i, hasSanggi });
+        break;
+      }
+    }
+
+    // 상기 없이 2회 이상 등장하는 용어 수집
+    const r7Candidates = [];
+    for (const [term, occs] of occMap) {
+      const plainOccs = occs.filter(o => !o.hasSanggi);
+      if (plainOccs.length >= 2) r7Candidates.push(term);
+    }
+
+    // 하위 용어(sub-term) 필터링
+    function isSubterm(shorter, longer) {
+      if (shorter === longer) return false;
+      const sW = shorter.split(' '), lW = longer.split(' ');
+      if (sW.length >= lW.length) return false;
+      for (let i = 0; i <= lW.length - sW.length; i++) {
+        if (lW.slice(i, i + sW.length).join(' ') === shorter) return true;
+      }
+      return false;
+    }
+
+    const filtered = r7Candidates.filter(term =>
+      !r7Candidates.some(other => isSubterm(term, other))
+    );
+
+    for (const term of filtered) {
+      issues.push({
+        code: 'R7_MISSING_SANGGI',
+        severity: 'ERROR',
+        evidence: `'${term}' 앞에 '상기'가 누락됨 (이미 앞서 도입된 구성요소)`,
+        suggestion: `두 번째 이후 사용 시 '상기 ${term}'으로 수정하세요`
+      });
+    }
+
+    return issues;
   }
 
   function analyze(text){
@@ -1186,6 +1302,11 @@ document.addEventListener('DOMContentLoaded', function(){
             suggestion:"청구항 끝에 '방법', '장치', '시스템', '프로그램' 등의 발명 대상을 명시"
           });
         }
+      }
+
+      // R7: 앞서 도입된 구성요소에 '상기' 누락 검사
+      for (const iss of checkMissingSanggi(raw)) {
+        issues.push(iss);
       }
 
       results.push({
